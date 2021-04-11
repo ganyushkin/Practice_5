@@ -1,0 +1,64 @@
+---
+title: "Лабораторная Работа №5 часть 1"
+author: "Ганюшкин Александр"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document:
+    self_contained: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Вариант -- 5
+
+# Задание:
+
+Создать .Rmd скрипт, который генерирует html-отчёт с двумя картами:
+
+1. Картограмма с таблицей стран мира по показателю из базы Всемирного банка (интерактивная картограмма из примера).
+
+2. Карта с маркерами или с радиусами, построенная по набору данных с Портала открытых данных РФ.
+
+# Задание из варианта:
+
+WDI: любой показатель из раздела "Education" (Образование). Портал открытых данных: Объекты культурногонаследия на территории Костромской области (id: 4401168294-oknkosobl), взять только расположенные в городе Кострома
+
+Показатель: Labor force, total
+Год: 2020
+```{r, results='asis', cache=TRUE, message=F, warning=F}
+library('WDI')
+library('data.table')
+library('leaflet')
+suppressPackageStartupMessages(library('googleVis'))
+
+# Индикатор показателя
+indicator.code <- 'SL.TLF.TOTL.IN'
+
+data <- read.csv('./data/WDI.csv', header = T, sep = ',')
+data <- data.table(data)
+
+# Коды стран iso2
+fileURL <- 'https://pkgstore.datahub.io/core/country-list/data_csv/data/d7c9d7cfb42cb69f4422dec222dbbaa8/data_csv.csv'
+all.iso2.country.codes <- read.csv(fileURL, 
+                                   stringsAsFactors = FALSE, na.strings = '.')
+
+# Убираем макрорегионы
+data <- na.omit(data[iso2c %in% all.iso2.country.codes$Code, ])
+
+# Объект таблица исходных данных
+g.tbl <- gvisTable(data = data[, -'year'], 
+                   options = list(width = 300, height = 400))
+
+# Объект интерактивная карта
+g.chart <- gvisGeoChart(data = data, locationvar = 'iso2c',
+                        hovervar = 'country', colorvar = indicator.code,
+                        options = list(width = 500, 
+                                       height = 400, dataMode = 'regions'))
+
+# Разместить таблицу и карту на одной панели
+gvisMerge(g.tbl, g.chart, horizontal = TRUE,
+          tableOptions = 'bgcolor=\"#CCCCCC\" cellspacing=10')
+
+```
